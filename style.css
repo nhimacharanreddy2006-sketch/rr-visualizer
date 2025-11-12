@@ -1,0 +1,92 @@
+body {
+  background-color: #05091a;
+  color: #e0e6ff;
+  font-family: 'Segoe UI', sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  padding: 20px;
+  text-align: center;
+}
+
+h1 {
+  color: #9cb3ff;
+}
+
+.main {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.left, .right {
+  background-color: #0b1229;
+  border-radius: 12px;
+  padding: 20px;
+  margin: 10px;
+}
+
+.left {
+  width: 300px;
+}
+
+.right {
+  flex: 1;
+  text-align: left;
+}
+
+input, button {
+  width: 90%;
+  margin: 5px 0;
+  padding: 6px;
+  border-radius: 6px;
+  border: none;
+}
+
+button {
+  background-color: #2b6cff;
+  color: white;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #1a4fd8;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+th, td {
+  border: 1px solid #2d396b;
+  padding: 6px;
+  text-align: center;
+}
+
+.gantt {
+  margin-top: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.gantt div {
+  background-color: #3c59f0;
+  padding: 5px 10px;
+  border-radius: 6px;
+  color: white;
+  font-weight: bold;
+}
+
+#stats, #log {
+  margin-top: 20px;
+}
+
+ul {
+  list-style-type: square;
+  padding-left: 20px;
+}
