@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Round Robin CPU Scheduling — Interactive Visualizer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Round Robin CPU Scheduling — Interactive Visualizer</h1>
+
+    <div class="main">
+      <div class="left">
+        <h3>Input</h3>
+        <label>Time Quantum (ms)</label>
+        <input id="quantum" type="number" value="4" min="1">
+        <button id="addProcess">+ Add Process</button>
+        <button id="clear">Clear</button>
+        <button id="build">Build Schedule</button>
+
+        <table id="ptable">
+          <thead>
+            <tr>
+              <th>PID</th><th>Arrival</th><th>Burst</th><th>Priority</th>
+            </tr>
+          </thead>
+          <tbody id="processBody"></tbody>
+        </table>
+
+        <div class="controls">
+          <button id="play">▶ Play</button>
+          <button id="pause">⏸ Pause</button>
+          <button id="step">Step</button>
+          <button id="reset">🔁 Reset</button>
+        </div>
+      </div>
+
+      <div class="right">
+        <div id="gantt" class="gantt"></div>
+        <div id="stats">
+          <h3>Statistics</h3>
+          <p id="avgWait">Avg Waiting Time: —</p>
+          <p id="avgTurn">Avg Turnaround Time: —</p>
+        </div>
+        <div id="log">
+          <h3>Event Log</h3>
+          <ul id="events"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
