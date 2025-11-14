@@ -28,14 +28,8 @@ h1 {
   margin: 10px;
 }
 
-.left {
-  width: 300px;
-}
-
-.right {
-  flex: 1;
-  text-align: left;
-}
+.left { width: 300px; }
+.right { flex: 1; text-align: left; }
 
 input, button {
   width: 90%;
@@ -51,9 +45,7 @@ button {
   cursor: pointer;
 }
 
-button:hover {
-  background-color: #1a4fd8;
-}
+button:hover { background-color: #1a4fd8; }
 
 table {
   width: 100%;
