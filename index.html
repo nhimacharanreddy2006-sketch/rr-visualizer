@@ -15,6 +15,7 @@
         <h3>Input</h3>
         <label>Time Quantum (ms)</label>
         <input id="quantum" type="number" value="4" min="1">
+
         <button id="addProcess">+ Add Process</button>
         <button id="clear">Clear</button>
         <button id="build">Build Schedule</button>
@@ -38,11 +39,13 @@
 
       <div class="right">
         <div id="gantt" class="gantt"></div>
+
         <div id="stats">
           <h3>Statistics</h3>
           <p id="avgWait">Avg Waiting Time: —</p>
           <p id="avgTurn">Avg Turnaround Time: —</p>
         </div>
+
         <div id="log">
           <h3>Event Log</h3>
           <ul id="events"></ul>
@@ -51,6 +54,7 @@
     </div>
   </div>
 
-  <script src="script.js"></script>
+  <!-- FINAL FIX: defer ensures DOM loads first -->
+  <script defer src="script.js"></script>
 </body>
 </html>
