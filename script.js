@@ -1,29 +1,25 @@
 document.addEventListener("DOMContentLoaded", () => {
 
-/* ------------------------------------------------------
-   VARIABLES
----------------------------------------------------------*/
+// ---------------------------
+// GLOBALS
+// ---------------------------
 let processes = [];
 let timeline = [];
 let quantum = 4;
-
-let currentIndex = 0;
+let idx = 0;
 let playing = false;
 let timer;
 
-/* ------------------------------------------------------
-   DOM ELEMENTS
----------------------------------------------------------*/
-const ptable = document.getElementById("processBody");
+// DOM refs
+const tbody = document.getElementById("processBody");
 const gantt = document.getElementById("gantt");
 const events = document.getElementById("events");
 
-/* ------------------------------------------------------
-   ADD PROCESS (editable)
----------------------------------------------------------*/
+// ---------------------------
+// ADD PROCESS
+// ---------------------------
 document.getElementById("addProcess").onclick = () => {
   const pid = "P" + (processes.length + 1);
-
   const arrival = Math.floor(Math.random() * 10);
   const burst = Math.floor(Math.random() * 10) + 1;
   const priority = Math.floor(Math.random() * 5) + 1;
@@ -36,69 +32,67 @@ document.getElementById("addProcess").onclick = () => {
     remaining: burst
   });
 
-  renderEditableTable();
+  renderTable();
 };
 
-/* ------------------------------------------------------
-   CLEAR
----------------------------------------------------------*/
+// ---------------------------
+// CLEAR
+// ---------------------------
 document.getElementById("clear").onclick = () => {
   processes = [];
   timeline = [];
-  currentIndex = 0;
+  idx = 0;
   playing = false;
-
-  ptable.innerHTML = "";
+  tbody.innerHTML = "";
   gantt.innerHTML = "";
   events.innerHTML = "";
   resetStats();
 };
 
-/* ------------------------------------------------------
-   BUILD SCHEDULE
----------------------------------------------------------*/
+// ---------------------------
+// BUILD SCHEDULE
+// ---------------------------
 document.getElementById("build").onclick = () => {
-  saveTableEdits();
+  saveEdits();
   quantum = parseInt(document.getElementById("quantum").value);
 
   if (processes.length === 0) return;
 
-  buildSchedule();
+  buildRR();
   previewGantt();
 };
 
-/* ------------------------------------------------------
-   PLAY CONTROLS
----------------------------------------------------------*/
-document.getElementById("play").onclick = () => playAnimation();
-document.getElementById("pause").onclick = () => stopAnimation();
-document.getElementById("step").onclick = () => stepOnce();
+// ---------------------------
+// CONTROLS
+// ---------------------------
+document.getElementById("play").onclick = () => play();
+document.getElementById("pause").onclick = () => pause();
+document.getElementById("step").onclick = () => step();
 document.getElementById("reset").onclick = () => location.reload();
 
-/* ------------------------------------------------------
-   RENDER EDITABLE TABLE
----------------------------------------------------------*/
-function renderEditableTable() {
-  ptable.innerHTML = "";
+// ---------------------------
+// RENDER EDITABLE TABLE
+// ---------------------------
+function renderTable() {
+  tbody.innerHTML = "";
 
-  processes.forEach((p, index) => {
-    ptable.innerHTML += `
+  processes.forEach((p, i) => {
+    tbody.innerHTML += `
       <tr>
         <td>${p.pid}</td>
-        <td><input type="number" min="0" value="${p.arrival}" data-i="${index}" data-f="arrival"></td>
-        <td><input type="number" min="1" value="${p.burst}" data-i="${index}" data-f="burst"></td>
-        <td><input type="number" min="1" value="${p.priority}" data-i="${index}" data-f="priority"></td>
-      </tr>`;
+        <td><input data-i="${i}" data-f="arrival" type="number" value="${p.arrival}"></td>
+        <td><input data-i="${i}" data-f="burst" type="number" value="${p.burst}"></td>
+        <td><input data-i="${i}" data-f="priority" type="number" value="${p.priority}"></td>
+      </tr>
+    `;
   });
 }
 
-/* ------------------------------------------------------
-   SAVE USER EDITS
----------------------------------------------------------*/
-function saveTableEdits() {
-  const cells = document.querySelectorAll("#processBody input");
-
-  cells.forEach(inp => {
+// ---------------------------
+// SAVE EDITS
+// ---------------------------
+function saveEdits() {
+  document.querySelectorAll("#processBody input").forEach(inp => {
     const i = inp.dataset.i;
     const field = inp.dataset.f;
     const val = parseInt(inp.value);
@@ -108,133 +102,118 @@ function saveTableEdits() {
   });
 }
 
-/* ------------------------------------------------------
-   RESET STATS
----------------------------------------------------------*/
+// ---------------------------
+// RESET STATS
+// ---------------------------
 function resetStats() {
   document.getElementById("avgWait").textContent = "Avg Waiting Time: —";
   document.getElementById("avgTurn").textContent = "Avg Turnaround Time: —";
 }
 
-/* ------------------------------------------------------
-   ROUND ROBIN BUILD
----------------------------------------------------------*/
-function buildSchedule() {
+// ---------------------------
+// ROUND ROBIN BUILD
+// ---------------------------
+function buildRR() {
   timeline = [];
-  currentIndex = 0;
+  idx = 0;
   playing = false;
-
-  events.innerHTML = "";
   gantt.innerHTML = "";
+  events.innerHTML = "";
 
-  const sorted = processes.map(p => ({ ...p }));
-  sorted.sort((a, b) => a.arrival - b.arrival);
+  let arr = processes.map(p => ({ ...p }));
+  arr.sort((a, b) => a.arrival - b.arrival);
 
-  let time = 0;
+  let t = 0;
   let i = 0;
-  let queue = [];
+  let q = [];
 
-  while (i < sorted.length || queue.length > 0) {
+  while (i < arr.length || q.length > 0) {
 
-    while (i < sorted.length && sorted[i].arrival <= time)
-      queue.push(sorted[i++]);
+    while (i < arr.length && arr[i].arrival <= t)
+      q.push(arr[i++]);
 
-    if (queue.length === 0) {
-      timeline.push({ pid: "IDLE", start: time, end: time + 1 });
-      time++;
+    if (q.length === 0) {
+      timeline.push({ pid: "IDLE", start: t, end: t + 1 });
+      t++;
       continue;
     }
 
-    const cur = queue.shift();
+    const cur = q.shift();
     const run = Math.min(cur.remaining, quantum);
 
-    timeline.push({
-      pid: cur.pid,
-      start: time,
-      end: time + run
-    });
+    timeline.push({ pid: cur.pid, start: t, end: t + run });
 
     cur.remaining -= run;
-    time += run;
+    t += run;
 
-    while (i < sorted.length && sorted[i].arrival <= time)
-      queue.push(sorted[i]);
+    while (i < arr.length && arr[i].arrival <= t)
+      q.push(arr[i]);
 
-    if (cur.remaining > 0) queue.push(cur);
+    if (cur.remaining > 0) q.push(cur);
   }
 }
 
-/* ------------------------------------------------------
-   PREVIEW (static gantt)
----------------------------------------------------------*/
+// ---------------------------
+// PREVIEW
+// ---------------------------
 function previewGantt() {
   gantt.innerHTML = "";
-
   timeline.forEach(seg => {
     const d = document.createElement("div");
     d.textContent = `${seg.pid} (${seg.start}-${seg.end})`;
-    d.style.background = seg.pid === "IDLE" ? "#555" : "#3c59f0";
+    d.style.background = seg.pid === "IDLE" ? "#666" : "#3c59f0";
     gantt.appendChild(d);
   });
 }
 
-/* ------------------------------------------------------
-   PLAY ANIMATION
----------------------------------------------------------*/
-function playAnimation() {
+// ---------------------------
+// PLAY ANIMATION
+// ---------------------------
+function play() {
   if (playing) return;
   playing = true;
 
   gantt.innerHTML = "";
   events.innerHTML = "";
-  currentIndex = 0;
+  idx = 0;
 
   function animate() {
     if (!playing) return;
 
-    if (currentIndex < timeline.length) {
-      drawSlice(timeline[currentIndex]);
-      currentIndex++;
-      timer = setTimeout(animate, 800);
+    if (idx < timeline.length) {
+      draw(timeline[idx]);
+      idx++;
+      timer = setTimeout(animate, 700);
     } else {
       playing = false;
-      displayStats();
+      stats();
     }
   }
 
   animate();
 }
 
-/* ------------------------------------------------------
-   STOP ANIMATION
----------------------------------------------------------*/
-function stopAnimation() {
+function pause() {
   playing = false;
   clearTimeout(timer);
 }
 
-/* ------------------------------------------------------
-   STEP-BY-STEP
----------------------------------------------------------*/
-function stepOnce() {
-  stopAnimation();
-
-  if (currentIndex < timeline.length) {
-    drawSlice(timeline[currentIndex]);
-    currentIndex++;
-
-    if (currentIndex === timeline.length)
-      displayStats();
+function step() {
+  pause();
+  if (idx < timeline.length) {
+    draw(timeline[idx]);
+    idx++;
+    if (idx === timeline.length) stats();
   }
 }
 
-/* ------------------------------------------------------
-   DRAW GANTT SEGMENT
----------------------------------------------------------*/
-function drawSlice(seg) {
+// ---------------------------
+// DRAW BLOCK
+// ---------------------------
+function draw(seg) {
   const d = document.createElement("div");
   d.textContent = `${seg.pid} (${seg.start}-${seg.end})`;
-  d.style.background = seg.pid === "IDLE" ? "#555" : "#3c59f0";
+  d.style.background = seg.pid === "IDLE" ? "#666" : "#3c59f0";
   gantt.appendChild(d);
 
   const li = document.createElement("li");
@@ -242,11 +221,11 @@ function drawSlice(seg) {
   events.appendChild(li);
 }
 
-/* ------------------------------------------------------
-   STATS
----------------------------------------------------------*/
-function displayStats() {
-  const stats = {};
+// ---------------------------
+// STATS
+// ---------------------------
+function stats() {
+  const data = {};
 
   processes.forEach(p => {
     const segs = timeline.filter(x => x.pid === p.pid);
@@ -255,14 +234,14 @@ function displayStats() {
     const tat = completion - p.arrival;
     const wt = tat - p.burst;
 
-    stats[p.pid] = { tat, wt };
+    data[p.pid] = { tat, wt };
   });
 
-  const avgWT = (Object.values(stats).reduce((a, b) => a + b.wt, 0) / processes.length).toFixed(2);
-  const avgTAT = (Object.values(stats).reduce((a, b) => a + b.tat, 0) / processes.length).toFixed(2);
+  const avgWT = (Object.values(data).reduce((a, b) => a + b.wt, 0) / processes.length).toFixed(2);
+  const avgTAT = (Object.values(data).reduce((a, b) => a + b.tat, 0) / processes.length).toFixed(2);
 
-  document.getElementById("avgWait").textContent = `Avg Waiting Time: ${avgWT}`;
-  document.getElementById("avgTurn").textContent = `Avg Turnaround Time: ${avgTAT}`;
+  document.getElementById("avgWait").textContent = "Avg Waiting Time: " + avgWT;
+  document.getElementById("avgTurn").textContent = "Avg Turnaround Time: " + avgTAT;
 }
 
 }); // END DOMContentLoaded
