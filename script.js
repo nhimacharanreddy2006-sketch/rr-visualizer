@@ -1,5 +1,7 @@
+document.addEventListener("DOMContentLoaded", () => {
+
 /* ------------------------------------------------------
-   GLOBAL VARIABLES
+   VARIABLES
 ---------------------------------------------------------*/
 let processes = [];
 let timeline = [];
@@ -10,14 +12,14 @@ let playing = false;
 let timer;
 
 /* ------------------------------------------------------
-   DOM ELEMENTS (SAFE)
+   DOM ELEMENTS
 ---------------------------------------------------------*/
 const ptable = document.getElementById("processBody");
 const gantt = document.getElementById("gantt");
 const events = document.getElementById("events");
 
 /* ------------------------------------------------------
-   1. ADD PROCESS (Editable)
+   ADD PROCESS (editable)
 ---------------------------------------------------------*/
 document.getElementById("addProcess").onclick = () => {
   const pid = "P" + (processes.length + 1);
@@ -38,7 +40,7 @@ document.getElementById("addProcess").onclick = () => {
 };
 
 /* ------------------------------------------------------
-   2. CLEAR
+   CLEAR
 ---------------------------------------------------------*/
 document.getElementById("clear").onclick = () => {
   processes = [];
@@ -53,7 +55,7 @@ document.getElementById("clear").onclick = () => {
 };
 
 /* ------------------------------------------------------
-   3. BUILD SCHEDULE
+   BUILD SCHEDULE
 ---------------------------------------------------------*/
 document.getElementById("build").onclick = () => {
   saveTableEdits();
@@ -66,7 +68,7 @@ document.getElementById("build").onclick = () => {
 };
 
 /* ------------------------------------------------------
-   4. PLAY / PAUSE / STEP / RESET
+   PLAY CONTROLS
 ---------------------------------------------------------*/
 document.getElementById("play").onclick = () => playAnimation();
 document.getElementById("pause").onclick = () => stopAnimation();
@@ -91,7 +93,7 @@ function renderEditableTable() {
 }
 
 /* ------------------------------------------------------
-   SAVE TABLE INPUTS
+   SAVE USER EDITS
 ---------------------------------------------------------*/
 function saveTableEdits() {
   const cells = document.querySelectorAll("#processBody input");
@@ -102,7 +104,6 @@ function saveTableEdits() {
     const val = parseInt(inp.value);
 
     processes[i][field] = val;
-
     if (field === "burst") processes[i].remaining = val;
   });
 }
@@ -116,14 +117,15 @@ function resetStats() {
 }
 
 /* ------------------------------------------------------
-   ROUND ROBIN SCHEDULING
+   ROUND ROBIN BUILD
 ---------------------------------------------------------*/
 function buildSchedule() {
   timeline = [];
+  currentIndex = 0;
+  playing = false;
+
   events.innerHTML = "";
   gantt.innerHTML = "";
-  playing = false;
-  currentIndex = 0;
 
   const sorted = processes.map(p => ({ ...p }));
   sorted.sort((a, b) => a.arrival - b.arrival);
@@ -133,6 +135,7 @@ function buildSchedule() {
   let queue = [];
 
   while (i < sorted.length || queue.length > 0) {
+
     while (i < sorted.length && sorted[i].arrival <= time)
       queue.push(sorted[i++]);
 
@@ -162,7 +165,7 @@ function buildSchedule() {
 }
 
 /* ------------------------------------------------------
-   PREVIEW STATIC GANTT
+   PREVIEW (static gantt)
 ---------------------------------------------------------*/
 function previewGantt() {
   gantt.innerHTML = "";
@@ -202,13 +205,16 @@ function playAnimation() {
   animate();
 }
 
+/* ------------------------------------------------------
+   STOP ANIMATION
+---------------------------------------------------------*/
 function stopAnimation() {
   playing = false;
   clearTimeout(timer);
 }
 
 /* ------------------------------------------------------
-   STEP ONCE
+   STEP-BY-STEP
 ---------------------------------------------------------*/
 function stepOnce() {
   stopAnimation();
@@ -217,12 +223,13 @@ function stepOnce() {
     drawSlice(timeline[currentIndex]);
     currentIndex++;
 
-    if (currentIndex === timeline.length) displayStats();
+    if (currentIndex === timeline.length)
+      displayStats();
   }
 }
 
 /* ------------------------------------------------------
-   DRAW ONE SEGMENT
+   DRAW GANTT SEGMENT
 ---------------------------------------------------------*/
 function drawSlice(seg) {
   const d = document.createElement("div");
@@ -236,7 +243,7 @@ function drawSlice(seg) {
 }
 
 /* ------------------------------------------------------
-   CALCULATE STATS
+   STATS
 ---------------------------------------------------------*/
 function displayStats() {
   const stats = {};
@@ -244,8 +251,10 @@ function displayStats() {
   processes.forEach(p => {
     const segs = timeline.filter(x => x.pid === p.pid);
     const completion = segs[segs.length - 1].end;
+
     const tat = completion - p.arrival;
     const wt = tat - p.burst;
+
     stats[p.pid] = { tat, wt };
   });
 
@@ -255,3 +264,5 @@ function displayStats() {
   document.getElementById("avgWait").textContent = `Avg Waiting Time: ${avgWT}`;
   document.getElementById("avgTurn").textContent = `Avg Turnaround Time: ${avgTAT}`;
 }
+
+}); // END DOMContentLoaded
