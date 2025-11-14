@@ -1,3 +1,6 @@
+/* ------------------------------------------------------
+   GLOBAL VARIABLES
+---------------------------------------------------------*/
 let processes = [];
 let timeline = [];
 let quantum = 4;
@@ -6,14 +9,17 @@ let currentIndex = 0;
 let playing = false;
 let timer;
 
+/* ------------------------------------------------------
+   DOM ELEMENTS (SAFE)
+---------------------------------------------------------*/
 const ptable = document.getElementById("processBody");
 const gantt = document.getElementById("gantt");
 const events = document.getElementById("events");
 
 /* ------------------------------------------------------
-   1. ADD PROCESS (Editable Table)
+   1. ADD PROCESS (Editable)
 ---------------------------------------------------------*/
-document.getElementById("addProcess").addEventListener("click", () => {
+document.getElementById("addProcess").onclick = () => {
   const pid = "P" + (processes.length + 1);
 
   const arrival = Math.floor(Math.random() * 10);
@@ -29,41 +35,43 @@ document.getElementById("addProcess").addEventListener("click", () => {
   });
 
   renderEditableTable();
-});
+};
 
 /* ------------------------------------------------------
-   2. CLEAR EVERYTHING
+   2. CLEAR
 ---------------------------------------------------------*/
-document.getElementById("clear").addEventListener("click", () => {
+document.getElementById("clear").onclick = () => {
   processes = [];
   timeline = [];
   currentIndex = 0;
+  playing = false;
 
   ptable.innerHTML = "";
   gantt.innerHTML = "";
   events.innerHTML = "";
   resetStats();
-});
+};
 
 /* ------------------------------------------------------
-   3. BUILD SCHEDULE + PREVIEW GANTT
+   3. BUILD SCHEDULE
 ---------------------------------------------------------*/
-document.getElementById("build").addEventListener("click", () => {
-  saveTableEdits();           // very important!
+document.getElementById("build").onclick = () => {
+  saveTableEdits();
   quantum = parseInt(document.getElementById("quantum").value);
 
+  if (processes.length === 0) return;
+
   buildSchedule();
-  previewGantt();             // show static Gantt chart
-});
+  previewGantt();
+};
 
 /* ------------------------------------------------------
-   PLAY / PAUSE / STEP / RESET
+   4. PLAY / PAUSE / STEP / RESET
 ---------------------------------------------------------*/
-document.getElementById("play").addEventListener("click", () => playAnimation());
-document.getElementById("pause").addEventListener("click", () => { playing = false; clearTimeout(timer); });
-document.getElementById("step").addEventListener("click", () => { playing = false; clearTimeout(timer); stepOnce(); });
-document.getElementById("reset").addEventListener("click", () => location.reload());
-
+document.getElementById("play").onclick = () => playAnimation();
+document.getElementById("pause").onclick = () => stopAnimation();
+document.getElementById("step").onclick = () => stepOnce();
+document.getElementById("reset").onclick = () => location.reload();
 
 /* ------------------------------------------------------
    RENDER EDITABLE TABLE
@@ -75,25 +83,27 @@ function renderEditableTable() {
     ptable.innerHTML += `
       <tr>
         <td>${p.pid}</td>
-        <td><input type="number" min="0" value="${p.arrival}" data-index="${index}" data-field="arrival"></td>
-        <td><input type="number" min="1" value="${p.burst}" data-index="${index}" data-field="burst"></td>
-        <td><input type="number" min="1" max="10" value="${p.priority}" data-index="${index}" data-field="priority"></td>
-      </tr>
-    `;
+        <td><input type="number" min="0" value="${p.arrival}" data-i="${index}" data-f="arrival"></td>
+        <td><input type="number" min="1" value="${p.burst}" data-i="${index}" data-f="burst"></td>
+        <td><input type="number" min="1" value="${p.priority}" data-i="${index}" data-f="priority"></td>
+      </tr>`;
   });
 }
 
 /* ------------------------------------------------------
-   SAVE EDITED VALUES BACK TO ARRAY
+   SAVE TABLE INPUTS
 ---------------------------------------------------------*/
 function saveTableEdits() {
-  const inputs = document.querySelectorAll("#processBody input");
-  inputs.forEach(inp => {
-    const i = inp.dataset.index;
-    const field = inp.dataset.field;
-    processes[i][field] = parseInt(inp.value);
+  const cells = document.querySelectorAll("#processBody input");
 
-    if (field === "burst") processes[i].remaining = parseInt(inp.value);
+  cells.forEach(inp => {
+    const i = inp.dataset.i;
+    const field = inp.dataset.f;
+    const val = parseInt(inp.value);
+
+    processes[i][field] = val;
+
+    if (field === "burst") processes[i].remaining = val;
   });
 }
 
@@ -106,25 +116,25 @@ function resetStats() {
 }
 
 /* ------------------------------------------------------
-   4. BUILD ROUND ROBIN TIMELINE (NO UI)
+   ROUND ROBIN SCHEDULING
 ---------------------------------------------------------*/
 function buildSchedule() {
   timeline = [];
   events.innerHTML = "";
   gantt.innerHTML = "";
-  currentIndex = 0;
   playing = false;
+  currentIndex = 0;
 
-  const ready = [...processes].map(p => ({ ...p }));
-  ready.sort((a, b) => a.arrival - b.arrival);
+  const sorted = processes.map(p => ({ ...p }));
+  sorted.sort((a, b) => a.arrival - b.arrival);
 
   let time = 0;
   let i = 0;
-  const queue = [];
+  let queue = [];
 
-  while (i < ready.length || queue.length > 0) {
-    while (i < ready.length && ready[i].arrival <= time)
-      queue.push(ready[i++]);
+  while (i < sorted.length || queue.length > 0) {
+    while (i < sorted.length && sorted[i].arrival <= time)
+      queue.push(sorted[i++]);
 
     if (queue.length === 0) {
       timeline.push({ pid: "IDLE", start: time, end: time + 1 });
@@ -133,40 +143,40 @@ function buildSchedule() {
     }
 
     const cur = queue.shift();
-    const runTime = Math.min(cur.remaining, quantum);
+    const run = Math.min(cur.remaining, quantum);
 
     timeline.push({
       pid: cur.pid,
       start: time,
-      end: time + runTime
+      end: time + run
     });
 
-    cur.remaining -= runTime;
-    time += runTime;
+    cur.remaining -= run;
+    time += run;
 
-    while (i < ready.length && ready[i].arrival <= time)
-      queue.push(ready[i]);
+    while (i < sorted.length && sorted[i].arrival <= time)
+      queue.push(sorted[i]);
 
     if (cur.remaining > 0) queue.push(cur);
   }
 }
 
 /* ------------------------------------------------------
-   5. PREVIEW (static gantt chart)
+   PREVIEW STATIC GANTT
 ---------------------------------------------------------*/
 function previewGantt() {
   gantt.innerHTML = "";
 
   timeline.forEach(seg => {
-    const div = document.createElement("div");
-    div.textContent = `${seg.pid} (${seg.start}-${seg.end})`;
-    div.style.backgroundColor = seg.pid === "IDLE" ? "#666" : "#3c59f0";
-    gantt.appendChild(div);
+    const d = document.createElement("div");
+    d.textContent = `${seg.pid} (${seg.start}-${seg.end})`;
+    d.style.background = seg.pid === "IDLE" ? "#555" : "#3c59f0";
+    gantt.appendChild(d);
   });
 }
 
 /* ------------------------------------------------------
-   6. PLAY ANIMATION
+   PLAY ANIMATION
 ---------------------------------------------------------*/
 function playAnimation() {
   if (playing) return;
@@ -182,7 +192,6 @@ function playAnimation() {
     if (currentIndex < timeline.length) {
       drawSlice(timeline[currentIndex]);
       currentIndex++;
-
       timer = setTimeout(animate, 800);
     } else {
       playing = false;
@@ -193,10 +202,17 @@ function playAnimation() {
   animate();
 }
 
+function stopAnimation() {
+  playing = false;
+  clearTimeout(timer);
+}
+
 /* ------------------------------------------------------
-   7. SINGLE STEP
+   STEP ONCE
 ---------------------------------------------------------*/
 function stepOnce() {
+  stopAnimation();
+
   if (currentIndex < timeline.length) {
     drawSlice(timeline[currentIndex]);
     currentIndex++;
@@ -206,13 +222,13 @@ function stepOnce() {
 }
 
 /* ------------------------------------------------------
-   8. DRAW ONE GANTT SEGMENT
+   DRAW ONE SEGMENT
 ---------------------------------------------------------*/
 function drawSlice(seg) {
-  const div = document.createElement("div");
-  div.textContent = `${seg.pid} (${seg.start}-${seg.end})`;
-  div.style.backgroundColor = seg.pid === "IDLE" ? "#666" : "#3c59f0";
-  gantt.appendChild(div);
+  const d = document.createElement("div");
+  d.textContent = `${seg.pid} (${seg.start}-${seg.end})`;
+  d.style.background = seg.pid === "IDLE" ? "#555" : "#3c59f0";
+  gantt.appendChild(d);
 
   const li = document.createElement("li");
   li.textContent = `${seg.pid} runs from ${seg.start} to ${seg.end}`;
@@ -220,7 +236,7 @@ function drawSlice(seg) {
 }
 
 /* ------------------------------------------------------
-   9. FINAL STATISTICS
+   CALCULATE STATS
 ---------------------------------------------------------*/
 function displayStats() {
   const stats = {};
@@ -228,10 +244,8 @@ function displayStats() {
   processes.forEach(p => {
     const segs = timeline.filter(x => x.pid === p.pid);
     const completion = segs[segs.length - 1].end;
-
     const tat = completion - p.arrival;
     const wt = tat - p.burst;
-
     stats[p.pid] = { tat, wt };
   });
 
